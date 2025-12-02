@@ -1,668 +1,839 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>素数計算OSと解析数論の従来到達点 (2025)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- MathJax Configuration: Enable $ as inline delimiter -->
-    <script>
-        window.MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']]
-            },
-            options: {
-                ignoreHtmlClass: 'tex2jax_ignore',
-                processHtmlClass: 'tex2jax_process'
-            }
-        };
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Noto Sans JP', sans-serif; background-color: #F9FAFB; color: #1F2937; }
-        h1, h2, h3, .serif { font-family: 'Noto Serif JP', serif; }
-        
-        /* Responsive Chart Container */
-        .chart-container { 
-            position: relative; 
-            width: 100%; 
-            max-width: 800px; 
-            margin-left: auto; 
-            margin-right: auto; 
-            /* Mobile height (compact) */
-            height: 250px; 
-            max-height: 400px; 
-        }
-        @media (min-width: 768px) {
-            .chart-container {
-                /* Desktop height */
-                height: 350px; 
-            }
-        }
+  <meta charset="UTF-8" />
+  <title>和算 二・〇：円理見立絵図</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- フォント読み込み -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* -------------------------------------------
+       江戸の粋（Edo Iki）テーマ変数
+    ------------------------------------------- */
+    :root {
+      --color-paper: #f7f6f0;   /* 生成り色 */
+      --color-ai: #162447;      /* 藍色 */
+      --color-sumi: #2b2b2b;    /* 墨色 */
+      --color-usuzumi: #595959; /* 薄墨 */
+      --color-shu: #c7362a;     /* 朱色 */
+      --color-yamabuki: #d9a62e;/* 山吹色 */
+      --color-uguisu: #5d6b2f;  /* 鶯色 */
+      --color-border: rgba(22, 36, 71, 0.15);
 
-        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-        .transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 300ms; }
-        
-        /* Tab Styling */
-        .active-tab { border-bottom: 2px solid #0F766E; color: #0F766E; font-weight: 700; background-color: rgba(15, 118, 110, 0.05); }
-        .inactive-tab { color: #6B7280; border-bottom: 2px solid transparent; }
-        .inactive-tab:hover { color: #374151; background-color: #F3F4F6; }
+      --font-serif: "Zen Old Mincho", serif;
+      --font-sans: "Zen Kaku Gothic New", sans-serif;
+      --font-mono: "Courier Prime", monospace;
 
-        /* Hide scrollbar for clean horizontal scrolling */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        /* Reference Highlight Animation */
-        @keyframes highlight-pulse {
-            0% { background-color: #FEF3C7; transform: scale(1.02); border-color: #F59E0B; }
-            50% { background-color: #FEF3C7; transform: scale(1.02); border-color: #F59E0B; }
-            100% { background-color: white; transform: scale(1); border-color: #E5E7EB; }
-        }
-        .highlight-ref {
-            animation: highlight-pulse 2s ease-out;
-        }
-        /* Smooth scrolling adjustment for fixed header */
-        html { scroll-padding-top: 80px; }
-    </style>
+      --paper-texture: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjMDAwIiBmaWxsLW9wYWNpdHk9IjAuMDMiLz4KPC9zdmc+');
+    }
+
+    * { box-sizing: border-box; }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #e0ded5;
+      background-image: var(--paper-texture);
+      color: var(--color-sumi);
+      font-family: var(--font-serif);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start; 
+      line-height: 1.75; 
+      padding: 10px; 
+    }
+
+    /* -------------------------------------------
+       レイアウト：モバイルファースト
+    ------------------------------------------- */
+    .app-container {
+      width: 100%;
+      max-width: 900px;
+      background-color: var(--color-paper);
+      background-image: var(--paper-texture);
+      border: 1px solid #d4d2c9;
+      padding: 20px 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+    }
+    
+    .app-container::before, .app-container::after {
+      content: ""; position: absolute; left: 0; right: 0; height: 4px; background: var(--color-ai);
+    }
+    .app-container::before { top: 0; }
+    .app-container::after { bottom: 0; }
+
+    @media (min-width: 768px) {
+      body { padding: 30px; }
+      .app-container { padding: 48px; gap: 48px; }
+    }
+
+    section { width: 100%; }
+
+    /* -------------------------------------------
+       デザインパーツ
+    ------------------------------------------- */
+    .header-row {
+      border-bottom: 2px solid var(--color-border);
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap; 
+      gap: 8px;
+    }
+    .tategaki-title {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: var(--color-ai);
+      border-left: 6px solid var(--color-shu);
+      padding-left: 10px;
+      line-height: 1;
+      letter-spacing: 0.05em;
+    }
+    .header-sub {
+      font-size: 0.75rem;
+      color: var(--color-usuzumi);
+      font-family: var(--font-mono);
+      text-align: right;
+      flex-grow: 1;
+      margin-bottom: 2px;
+    }
+
+    /* ガイド（引札風 - 文節崩れ防止・極） */
+    .modern-guide {
+      font-family: var(--font-serif);
+      font-size: 0.9rem; 
+      color: var(--color-sumi);
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid var(--color-border);
+      border-left: 4px solid var(--color-ai);
+      padding: 18px 14px; /* 左右padding微調整 */
+      margin-bottom: 24px;
+      line-height: 1.8; /* 行間調整 */
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.03);
+      border-radius: 2px;
+      text-align: left; 
+    }
+    .modern-guide strong { 
+      color: var(--color-ai); 
+      font-weight: 900; 
+      background: linear-gradient(transparent 70%, rgba(217, 166, 46, 0.25) 70%);
+    }
+    /* 文節キープ用クラス：これが肝 */
+    .bunsetsu {
+      display: inline-block; 
+    }
+
+    .guide-label {
+      font-size: 0.75rem; color: var(--color-shu); font-weight: 700; display: block; margin-bottom: 8px;
+    }
+
+    .section-label {
+      font-size: 1.1rem; color: var(--color-ai); font-weight: 700;
+      border-bottom: 1px dashed var(--color-border);
+      padding-bottom: 6px; margin-bottom: 20px; display: block;
+    }
+
+    /* 漢数字表示 */
+    .kanji-display {
+      font-size: 2.4rem;
+      line-height: 1; margin: 24px 0;
+      text-align: center; color: var(--color-sumi);
+      font-feature-settings: "palt";
+      transition: color 0.2s;
+      word-break: keep-all; 
+    }
+    @media (min-width: 480px) {
+      .kanji-display { font-size: 3rem; margin: 32px 0; }
+    }
+    
+    /* スライダー（指先操作の最適化） */
+    .soroban-slider {
+      width: 100%; margin: 12px 0 28px 0;
+      -webkit-appearance: none; background: transparent; height: 48px;
+      touch-action: none;
+    }
+    .soroban-slider::-webkit-slider-runnable-track {
+      width: 100%; height: 2px; background: var(--color-usuzumi);
+    }
+    .soroban-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; height: 34px; width: 34px;
+      background: #fff; border: 2px solid var(--color-shu);
+      margin-top: -16px; border-radius: 50%; cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      transition: transform 0.1s;
+    }
+    .soroban-slider:active::-webkit-slider-thumb {
+      transform: scale(1.15); background: var(--color-shu);
+    }
+
+    /* ボタン */
+    .hanko-btn {
+      display: block; width: 100%; padding: 16px;
+      background: #fff; border: 2px solid var(--color-shu);
+      color: var(--color-shu); font-family: var(--font-serif);
+      font-size: 1rem; font-weight: 700; text-align: center; cursor: pointer;
+      transition: all 0.2s; box-shadow: 3px 3px 0 rgba(199, 54, 42, 0.1);
+      border-radius: 3px;
+      -webkit-tap-highlight-color: transparent;
+      text-decoration: none;
+    }
+    .hanko-btn:active { transform: translateY(2px); box-shadow: none; }
+    .hanko-btn.playing {
+      background: #fff8f8; color: var(--color-usuzumi); border-color: var(--color-usuzumi);
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.05); pointer-events: none;
+    }
+
+    /* リンクボタン */
+    .hanko-btn.link-btn {
+      background: linear-gradient(135deg, #fff 0%, #f9f9f7 100%);
+      border: 2px solid var(--color-ai);
+      color: var(--color-ai);
+      box-shadow: 0 4px 12px rgba(22, 36, 71, 0.1);
+      position: relative; overflow: hidden;
+    }
+    .hanko-btn.link-btn::after {
+      content: "↗"; font-size: 1.1rem; margin-left: 8px; vertical-align: middle;
+    }
+    .hanko-btn.link-btn:hover { background: var(--color-ai); color: #fff; }
+
+    /* Fuda (数値表示) */
+    .fuda-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+    .fuda-full { grid-column: span 2; }
+    
+    .fuda {
+      background: #fff; padding: 10px 12px;
+      border-left: 3px solid var(--color-usuzumi);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: flex-start;
+      overflow: hidden; border-radius: 2px;
+    }
+    @media (min-width: 480px) {
+      .fuda { flex-direction: row; justify-content: space-between; align-items: baseline; }
+    }
+    
+    .fuda-label { font-size: 0.75rem; color: var(--color-usuzumi); font-weight: bold; margin-bottom: 4px; }
+    .fuda-val { font-family: var(--font-mono); font-size: 0.9rem; color: var(--color-sumi); letter-spacing: -0.5px; white-space: nowrap; }
+    @media (min-width: 480px) { .fuda-val { font-size: 1rem; } }
+    
+    .fuda.lower { border-left-color: var(--color-uguisu); }
+    .fuda.upper { border-left-color: var(--color-yamabuki); }
+    .fuda.gap { border-left-color: var(--color-shu); background: #fffcfc; }
+    .gap-val { color: var(--color-shu); }
+    .gap-note { font-size: 0.65rem; color: var(--color-usuzumi); font-weight: normal; margin-left: 0; display: block; margin-top: 2px; }
+    @media (min-width: 480px) { .gap-note { margin-left: 8px; display: inline; margin-top: 0; } }
+
+    /* 不等式バー */
+    .inequality-bar {
+      margin: 16px 0 4px 0;
+      background: rgba(22, 36, 71, 0.04);
+      padding: 12px;
+      border-radius: 3px;
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-size: 0.9rem;
+      border: 1px dashed var(--color-border);
+      display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; line-height: 1.4;
+    }
+    .ine-green { color: var(--color-uguisu); white-space: nowrap; }
+    .ine-gold { color: var(--color-yamabuki); white-space: nowrap; }
+    .ine-center { color: var(--color-sumi); white-space: nowrap; }
+
+    /* ★ OS比較ボックス */
+    .os-comparison-block {
+      margin-top: 24px;
+      background: #fff;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      padding: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .os-comp-header {
+      font-size: 0.85rem; font-weight: 700; color: var(--color-ai);
+      border-bottom: 1px dashed var(--color-border); padding-bottom: 8px; margin-bottom: 12px;
+      text-align: center; letter-spacing: 1px;
+    }
+    .os-comp-grid {
+      display: grid; grid-template-columns: 1fr 1px 1fr; /* 左右対称 + 中央線 */
+      gap: 0; align-items: stretch;
+    }
+    .os-divider {
+      background: linear-gradient(to bottom, transparent, var(--color-border), transparent);
+      width: 1px; height: 100%;
+    }
+    .os-comp-item {
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+      padding: 0 4px;
+    }
+    .os-comp-title {
+      font-size: 0.8rem; font-weight: 700; margin-bottom: 8px;
+      color: var(--color-ai);
+    }
+    .os-comp-icon {
+      width: 48px; height: 48px; margin-bottom: 8px;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; 
+    }
+    .os-comp-icon svg {
+      width: 100%; height: 100%; position: static; display: block;
+    }
+    /* SVG Icon Styling & Animation */
+    .icon-west circle, .icon-west line { stroke: var(--color-ai); stroke-width: 2; fill: none; stroke-linecap: round; }
+    /* 西洋：流れる点線（無限） */
+    .icon-west .flow-line {
+      stroke-dasharray: 4 4;
+      animation: flowRight 2s linear infinite;
+    }
+    @keyframes flowRight { from { stroke-dashoffset: 8; } to { stroke-dashoffset: 0; } }
+
+    .icon-wasan circle, .icon-wasan line, .icon-wasan path { stroke: var(--color-shu); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    /* 和算：挟み込み（確定） */
+    .icon-wasan .squeeze-arrow-up {
+      animation: squeezeUp 2s ease-in-out infinite;
+    }
+    .icon-wasan .squeeze-arrow-down {
+      animation: squeezeDown 2s ease-in-out infinite;
+    }
+    .icon-wasan .truth-box {
+      opacity: 0;
+      animation: truthAppear 2s ease-in-out infinite;
+    }
+    @keyframes squeezeUp {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(6px); } /* 接近 */
+    }
+    @keyframes squeezeDown {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); } /* 接近 */
+    }
+    @keyframes truthAppear {
+      0%, 20% { opacity: 0; transform: scale(0.8); }
+      40%, 80% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; }
+    }
+    
+    .os-comp-desc {
+      font-size: 0.85rem; color: var(--color-sumi); line-height: 1.4;
+      font-weight: 900; margin-bottom: 4px; white-space: nowrap;
+    }
+    .os-comp-sub {
+      font-size: 0.65rem; color: var(--color-usuzumi); white-space: nowrap;
+    }
+
+    /* 参考値 */
+    .reference-metrics {
+      text-align: center; font-family: var(--font-mono); font-size: 0.7rem; color: var(--color-usuzumi);
+      margin-bottom: 12px; opacity: 0.8;
+    }
+
+    /* 見立絵図 */
+    .viz-box {
+      width: 100%; height: 0; padding-bottom: 90%; 
+      background: #fff;
+      background-image: radial-gradient(#e0ded5 1px, transparent 1px);
+      background-size: 20px 20px;
+      border: 1px solid var(--color-ai);
+      margin-bottom: 12px;
+      position: relative;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.03);
+    }
+    @media (min-width: 600px) { .viz-box { height: 380px; padding-bottom: 0; } }
+    .viz-box svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+    /* アニメーション */
+    .poly-inner-anim { transform-origin: center; animation: expandInner 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+    @keyframes expandInner { 0% { transform: scale(0.92); opacity: 0.5; } 100% { transform: scale(1); opacity: 1; } }
+    .poly-outer-anim { transform-origin: center; animation: contractOuter 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+    @keyframes contractOuter { 0% { transform: scale(1.08); opacity: 0.5; } 100% { transform: scale(1); opacity: 1; } }
+    
+    /* 大福帳 */
+    .daifukucho-wrapper { margin-top: 48px; }
+    
+    /* セキュリティ・口上 */
+    .safety-manifesto {
+      background: #fff; border: 2px solid var(--color-ai);
+      padding: 20px 16px; border-radius: 4px;
+      margin-bottom: -2px; position: relative; z-index: 2;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    }
+    @media (min-width: 480px) { .safety-manifesto { padding: 24px; } }
+    .safety-manifesto::after, .safety-manifesto::before { 
+      content: "◆"; position: absolute; color: var(--color-ai); font-size: 0.8rem; 
+    }
+    .safety-manifesto::after { top: 8px; right: 8px; }
+    .safety-manifesto::before { bottom: 8px; left: 8px; }
+
+    .safety-title {
+      font-size: 1.05rem; font-weight: 900; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px; color: var(--color-ai);
+      border-bottom: 1px solid var(--color-border); padding-bottom: 8px;
+    }
+    /* 文節キープ */
+    .safety-text {
+      font-family: var(--font-serif); font-size: 0.9rem; line-height: 2.0; color: var(--color-sumi);
+    }
+    
+    /* 対比表 */
+    .comparison-box {
+      display: flex; flex-direction: column; gap: 12px; margin-top: 20px; margin-bottom: 20px;
+    }
+    @media (min-width: 480px) { .comparison-box { flex-direction: row; gap: 20px; } }
+    
+    .compare-item {
+      flex: 1; padding: 14px; border-radius: 3px; font-size: 0.85rem; line-height: 1.6;
+      border: 1px solid var(--color-border); font-family: var(--font-serif); position: relative;
+    }
+    .compare-ai { background: #fafafa; }
+    .compare-adic { background: rgba(217, 166, 46, 0.08); border-color: var(--color-yamabuki); }
+    .compare-adic::after {
+      content: "和算ノ心"; position: absolute; top: -9px; right: 8px;
+      background: var(--color-yamabuki); color: #fff;
+      font-size: 0.6rem; padding: 2px 6px; border-radius: 2px;
+    }
+    .compare-label { display: block; font-size: 0.75rem; color: var(--color-usuzumi); margin-bottom: 6px; font-weight: bold; }
+    
+    /* 捏造防止宣言 */
+    .anti-fake-notice {
+      background: var(--color-ai); color: #fff; font-size: 0.85rem;
+      padding: 12px 14px; text-align: center; margin-top: 16px;
+      border-radius: 3px; font-weight: 500; font-family: var(--font-serif); line-height: 1.6;
+    }
+    
+    /* 証明書宣言 */
+    .proof-statement {
+      background: #f4f6f8; color: var(--color-ai); font-size: 0.8rem;
+      padding: 10px 14px; margin-top: 4px;
+      border-left: 3px solid var(--color-yamabuki);
+      font-family: var(--font-serif); line-height: 1.7;
+    }
+
+    /* 大福帳本体 */
+    .daifukucho {
+      background: #fdfdfd; color: var(--color-sumi);
+      padding: 20px 16px; height: 240px; overflow-y: auto;
+      font-family: var(--font-serif); font-size: 0.85rem;
+      border: 2px solid var(--color-ai); border-top: none; 
+      background-image: linear-gradient(transparent 95%, rgba(0,0,0,0.05) 95%);
+      background-size: 100% 3em; line-height: 3em;
+      scroll-behavior: smooth; position: relative;
+    }
+    /* ログ */
+    .log-entry { 
+      margin-bottom: 0; border-bottom: 1px solid rgba(0,0,0,0.1); 
+      padding: 8px 0; display: flex; flex-direction: column;
+    }
+    .log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .log-seal {
+      font-size: 0.65rem; color: var(--color-shu); border: 1px solid var(--color-shu);
+      padding: 1px 6px; border-radius: 2px; font-weight: bold; letter-spacing: 1px; flex-shrink: 0; 
+    }
+    .log-body {
+      font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-usuzumi);
+      background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 3px;
+      word-break: break-all;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 40px; padding: 24px 16px;
+      background: var(--color-ai); color: #fff;
+      text-align: center; font-size: 0.9rem; font-weight: 500;
+      line-height: 2.0; border-radius: 3px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+    .footer strong { color: var(--color-yamabuki); font-weight: 900; }
+
+    /* Related Link */
+    .related-link-area { margin-top: 48px; text-align: center; }
+    .related-title {
+      font-size: 0.95rem; color: var(--color-ai); font-weight: 700; margin-bottom: 16px;
+      display: inline-block; border-bottom: 1px solid var(--color-shu); padding-bottom: 4px;
+    }
+
+  </style>
 </head>
-<body class="antialiased min-h-screen flex flex-col">
+<body>
 
-    <!-- Header / Hero -->
-    <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-teal-700 rounded-lg flex items-center justify-center text-white font-bold text-lg serif flex-shrink-0">P</div>
-                <span class="font-bold text-gray-800 tracking-tight text-sm md:text-base">素数計算OS Report</span>
+<div class="app-container">
+  
+  <!-- 第一幕：導入 -->
+  <section>
+    <div class="header-row">
+      <div class="tategaki-title">円理 改</div>
+      <div class="header-sub">
+        Wasan 2.0<br>Ghost Drift Protocol
+      </div>
+    </div>
+    
+    <div class="modern-guide">
+      <span class="guide-label">【口上】</span>
+      <span class="bunsetsu">西洋ガ「無限ノ証明」ヲ</span><span class="bunsetsu">追ウ中、</span>
+      <span class="bunsetsu">江戸ハ<strong>「有限ノ手順」</strong>ヲ</span><span class="bunsetsu">極メリ。</span><br>
+      <span class="bunsetsu">円理トハ</span><span class="bunsetsu">遠回リニ非ズ。</span>
+      <span class="bunsetsu">万人ガ検算叶フ</span><span class="bunsetsu"><strong>「透明ナル術」</strong>ヲ選ビシ、</span>
+      <span class="bunsetsu">和算ノ矜持ナリ。</span>
+    </div>
+
+    <!-- 小史ブロック -->
+    <div class="modern-guide" style="margin-top:-10px; border-left-color: var(--color-yamabuki);">
+      <span class="guide-label" style="color:var(--color-yamabuki);">【小史】</span>
+      <span class="bunsetsu"><strong>関孝和</strong>——</span><span class="bunsetsu">独学ニテ</span><span class="bunsetsu">数理ノ深淵ヘ至リシ</span><span class="bunsetsu">江戸ノ巨人。</span><br>
+      <span class="bunsetsu">彼ガ編ミシ<strong>「円理」</strong>コソ、</span><span class="bunsetsu">無限ヲ用イズ、</span><span class="bunsetsu">多角形ニテ</span><span class="bunsetsu">円ヲ挟ミ撃ツ</span><span class="bunsetsu">有限ノ奥義ナリ。</span><br>
+      <span class="bunsetsu">本機ハ、</span><span class="bunsetsu">ソノ思考ヲ</span><span class="bunsetsu">ADIC台帳ヘ刻ミ、</span><span class="bunsetsu">現代OSトシテ</span><span class="bunsetsu">再実装セシモノ也。</span><br>
+      <br>
+      <div class="os-comparison-block">
+        <div class="os-comp-header">【比較】西洋 ト 和算 ノ流儀</div>
+        <div class="os-comp-grid">
+          <!-- 西洋：流れる矢印 -->
+          <div class="os-comp-item">
+            <span class="os-comp-title">西洋：極限</span>
+            <div class="os-comp-icon icon-west">
+              <svg viewBox="0 0 48 48">
+                <!-- 常に右へ流れる点線 -->
+                <line x1="0" y1="24" x2="48" y2="24" stroke-width="3" class="flow-line" />
+                <!-- 矢印の頭 -->
+                <path d="M40 20 L46 24 L40 28" stroke="currentColor" stroke-width="2" fill="none" />
+              </svg>
             </div>
-            <nav class="flex gap-4 text-sm font-medium text-gray-600 items-center">
-                <a href="#analysis" class="hidden md:block hover:text-teal-700 transition">研究マップ</a>
-                <a href="https://ghostdrifttheory.github.io/prime-counter-demo/" target="_blank" class="text-teal-700 font-bold hover:text-teal-900 transition flex items-center gap-1 bg-teal-50 px-3 py-1.5 rounded-full">
-                    Demo <span class="text-xs">↗</span>
-                </a>
-            </nav>
-        </div>
-    </header>
-
-    <main class="flex-grow">
-        <!-- Intro Section -->
-        <section class="py-10 md:py-16 bg-gradient-to-b from-gray-50 to-white">
-            <div class="max-w-4xl mx-auto px-4 text-center">
-                <div class="inline-block px-3 py-1 mb-4 text-xs font-semibold tracking-wider text-teal-800 uppercase bg-teal-100 rounded-full">
-                    2025年 解析数論レポート
-                </div>
-                <h1 class="text-2xl md:text-5xl font-bold text-gray-900 mb-6 leading-snug serif">
-                    素数計算OSと<br class="md:hidden">解析数論の従来到達点<br>
-                    <span class="text-teal-700 text-xl md:text-4xl italic block mt-3 font-normal">明示公式から有限閉包へ</span>
-                </h1>
-                <p class="text-sm md:text-lg text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed px-2">
-                    2020年から2025年にかけて、Chebyshev関数 $\psi(x)$ や $\pi(x)$ の誤差評価は劇的に改善されました。しかし、これらは依然として「無限」の寄与を不等式で抑え込む手法です。本レポートでは、最新の到達点を整理し、それらが抱える構造的限界と、それを突破する「有限閉包 (Finite Closure)」アプローチを対比します。
-                </p>
+            <div class="os-comp-desc">真理ハ「彼方」</div>
+            <div class="os-comp-sub">（無限ニ託ス）</div>
+          </div>
+          
+          <!-- 中央線 -->
+          <div class="os-divider"></div>
+          
+          <!-- 和算：挟み込んで確定 -->
+          <div class="os-comp-item">
+            <span class="os-comp-title" style="color:var(--color-shu);">和算：閾値</span>
+            <div class="os-comp-icon icon-wasan">
+              <svg viewBox="0 0 48 48">
+                <!-- 上から迫る矢印 -->
+                <path d="M24 6 L24 18" class="squeeze-arrow-up" stroke-width="3" />
+                <path d="M20 14 L24 18 L28 14" class="squeeze-arrow-up" stroke-width="2" />
                 
-                <div class="flex flex-col sm:flex-row justify-center items-center gap-3">
-                    <!-- Primary Action: Live Demo -->
-                    <a href="https://ghostdrifttheory.github.io/prime-counter-demo/" target="_blank" class="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold rounded-lg hover:from-teal-700 hover:to-emerald-700 transition shadow-lg shadow-teal-600/20 flex items-center justify-center gap-2 transform hover:-translate-y-0.5 group">
-                        <span>Live Demoを試す</span>
-                        <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                    </a>
-                    
-                    <!-- Secondary Actions -->
-                    <div class="flex gap-3 w-full sm:w-auto">
-                        <button onclick="document.getElementById('analysis').scrollIntoView({behavior: 'smooth'})" class="flex-1 sm:flex-none px-4 py-3 bg-white text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition text-sm">
-                            解析マップ
-                        </button>
-                        <button onclick="document.getElementById('concept').scrollIntoView({behavior: 'smooth'})" class="flex-1 sm:flex-none px-4 py-3 bg-white text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition text-sm">
-                            概念図解
-                        </button>
-                    </div>
-                </div>
+                <!-- 下から迫る矢印 -->
+                <path d="M24 42 L24 30" class="squeeze-arrow-down" stroke-width="3" />
+                <path d="M20 34 L24 30 L28 34" class="squeeze-arrow-down" stroke-width="2" />
+                
+                <!-- 真ん中の四角（真理）：点滅して現れる -->
+                <rect x="18" y="21" width="12" height="6" fill="currentColor" stroke="none" class="truth-box" />
+              </svg>
             </div>
-        </section>
-
-        <!-- Concept Visualization Section -->
-        <section id="concept" class="py-10 bg-white border-y border-gray-100">
-            <div class="max-w-6xl mx-auto px-4">
-                <div class="grid md:grid-cols-3 gap-8 items-center">
-                    <div class="md:col-span-1">
-                        <h2 class="text-xl md:text-2xl font-bold text-gray-900 mb-4 serif flex items-center gap-2">
-                            <span class="bg-gray-100 w-8 h-8 rounded-full flex items-center justify-center text-sm">A</span>
-                            無限の霧 vs 有限の窓
-                        </h2>
-                        <p class="text-gray-600 mb-6 text-sm leading-relaxed">
-                            従来の明示公式（Before）では、無限遠からの「波」の干渉（誤差）が残り続け、不等式 $|\psi(x)-x| < \epsilon$ でしか評価できません。
-                            <br><br>
-                            一方、素数計算OS（After）は<strong>Yukawa窓関数</strong>を用いて区間外の寄与を有限個の有理バウンドに吸収し、実質的に切り落とします。
-                        </p>
-                        
-                        <!-- Interaction Controls -->
-                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-500 uppercase mb-2">表示モード</label>
-                                <div class="flex bg-white rounded-lg p-1 border border-gray-200 shadow-sm">
-                                    <button id="btn-mode-classic" class="flex-1 py-2 text-xs md:text-sm font-medium rounded transition-colors bg-gray-100 text-gray-800" onclick="setChartMode('classic')">
-                                        従来 (不等式)
-                                    </button>
-                                    <button id="btn-mode-os" class="flex-1 py-2 text-xs md:text-sm font-medium rounded transition-colors text-gray-500 hover:text-gray-800" onclick="setChartMode('os')">
-                                        OS (有限閉包)
-                                    </button>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-500 uppercase mb-2">零点の項数 (近似精度)</label>
-                                <input type="range" id="term-slider" min="10" max="200" value="50" class="w-full accent-teal-700 cursor-pointer" oninput="updateChartTerms(this.value)">
-                                <div class="flex justify-between text-xs text-gray-400 mt-1">
-                                    <span>疎</span>
-                                    <span id="term-count-display">50項</span>
-                                    <span>密</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Chart Container -->
-                    <div class="md:col-span-2 bg-gray-50 rounded-2xl p-2 md:p-4 border border-gray-200 shadow-inner">
-                        <div class="chart-container">
-                            <canvas id="conceptChart"></canvas>
-                        </div>
-                        <div id="chart-caption" class="text-center mt-3 text-xs md:text-sm font-bold text-gray-700 px-2">
-                            従来の明示公式：無限遠のノイズが残留する
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Analysis Matrix Section -->
-        <section id="analysis" class="py-12 bg-gray-50">
-            <div class="max-w-6xl mx-auto px-4">
-                <div class="mb-8 text-center md:text-left">
-                    <h2 class="text-xl md:text-3xl font-bold text-gray-900 serif mb-3 flex items-center justify-center md:justify-start gap-2">
-                        <span class="bg-teal-100 text-teal-800 w-8 h-8 rounded-full flex items-center justify-center text-sm font-sans">B</span>
-                        研究マップ：到達点と突破口
-                    </h2>
-                    <p class="text-sm text-gray-600 max-w-3xl mx-auto md:mx-0">
-                        以下の5領域における、2025年の最先端成果と素数計算OSのパラダイムシフトの比較。
-                    </p>
-                </div>
-
-                <!-- Tabs (Horizontal Scroll for Mobile) -->
-                <div class="relative mb-6">
-                    <div class="flex overflow-x-auto pb-2 gap-2 md:gap-4 border-b border-gray-200 no-scrollbar whitespace-nowrap mask-linear-fade" id="tab-container">
-                        <button onclick="switchTab('explicit')" id="tab-explicit" class="px-4 py-2 rounded-t-lg text-sm md:text-base transition active-tab flex-shrink-0">① 明示公式</button>
-                        <button onclick="switchTab('intervals')" id="tab-intervals" class="px-4 py-2 rounded-t-lg text-sm md:text-base transition inactive-tab flex-shrink-0">② 短区間・平均値</button>
-                        <button onclick="switchTab('zeros')" id="tab-zeros" class="px-4 py-2 rounded-t-lg text-sm md:text-base transition inactive-tab flex-shrink-0">③ $\zeta$零点・RH</button>
-                        <button onclick="switchTab('computation')" id="tab-computation" class="px-4 py-2 rounded-t-lg text-sm md:text-base transition inactive-tab flex-shrink-0">④ $\pi(x)$ 実装</button>
-                        <button onclick="switchTab('unconditional')" id="tab-unconditional" class="px-4 py-2 rounded-t-lg text-sm md:text-base transition inactive-tab flex-shrink-0">⑤ 非RH依存</button>
-                    </div>
-                    <!-- Fade indicator for scroll -->
-                    <div class="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none md:hidden"></div>
-                </div>
-
-                <!-- Dynamic Content Area -->
-                <div id="matrix-content" class="grid md:grid-cols-2 gap-6 min-h-[400px]">
-                    <!-- Left: Conventional (JS Populated) -->
-                    <div class="bg-white rounded-xl p-5 md:p-8 shadow-sm border border-gray-200 card-hover transition-all">
-                        <div class="flex items-center gap-3 mb-4">
-                            <span class="bg-gray-100 text-gray-600 p-2 rounded-lg text-lg">📉</span>
-                            <h3 class="text-lg font-bold text-gray-800">従来の到達点</h3>
-                        </div>
-                        <div id="conventional-content" class="prose prose-sm text-gray-600 overflow-x-auto">
-                            <!-- Content goes here -->
-                        </div>
-                        <div class="mt-6 pt-4 border-t border-gray-100">
-                            <h4 class="text-[10px] md:text-xs font-bold text-red-500 uppercase tracking-wide mb-2">構造的限界 (The Limit)</h4>
-                            <p id="limit-content" class="text-xs md:text-sm text-gray-700 font-medium bg-red-50 p-3 rounded-lg border border-red-100">
-                                <!-- Limit content goes here -->
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Right: Prime OS (JS Populated) -->
-                    <div class="bg-teal-50 rounded-xl p-5 md:p-8 shadow-md border border-teal-100 card-hover transition-all relative overflow-hidden flex flex-col">
-                        <div class="absolute top-0 right-0 w-24 h-24 bg-teal-100 rounded-bl-full -mr-12 -mt-12 opacity-50"></div>
-                        <div class="flex items-center gap-3 mb-4 relative z-10">
-                            <span class="bg-teal-200 text-teal-800 p-2 rounded-lg text-lg">🚀</span>
-                            <h3 class="text-lg font-bold text-teal-900">素数計算OSの突破点</h3>
-                        </div>
-                        <div id="os-content" class="prose prose-sm text-gray-700 relative z-10 flex-grow overflow-x-auto">
-                            <!-- Content goes here -->
-                        </div>
-                        <div class="mt-8 relative z-10 flex flex-col sm:flex-row items-center justify-between border-t border-teal-100 pt-4 gap-3">
-                            <div class="inline-flex items-center gap-2 text-xs font-bold text-teal-700 bg-white px-3 py-1 rounded-full border border-teal-200 shadow-sm whitespace-nowrap">
-                                <span class="w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
-                                Paradigm Shift
-                            </div>
-                            <a href="https://ghostdrifttheory.github.io/prime-counter-demo/" target="_blank" class="text-teal-700 hover:text-teal-900 text-sm font-bold flex items-center gap-1 group whitespace-nowrap">
-                                Try Live Demo 
-                                <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Literature List Section -->
-        <section id="references" class="py-12 bg-white">
-            <div class="max-w-6xl mx-auto px-4">
-                <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-                    <div>
-                        <h2 class="text-xl md:text-2xl font-bold text-gray-900 serif flex items-center gap-2">
-                            <span class="bg-gray-100 w-8 h-8 rounded-full flex items-center justify-center text-sm font-sans">C</span>
-                            参考文献リスト
-                        </h2>
-                        <p class="text-xs text-gray-500 mt-1 pl-10">論拠となる主要な論文 (2020–2025)</p>
-                    </div>
-                    
-                    <!-- Filters (Scrollable on mobile) -->
-                    <div class="overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 no-scrollbar">
-                        <div class="flex gap-2 whitespace-nowrap">
-                            <button onclick="filterRefs('all')" class="px-3 py-1 text-xs font-medium rounded-full bg-gray-800 text-white transition hover:bg-gray-700">All</button>
-                            <button onclick="filterRefs('explicit')" class="px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 transition hover:bg-gray-200">明示公式</button>
-                            <button onclick="filterRefs('intervals')" class="px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 transition hover:bg-gray-200">短区間</button>
-                            <button onclick="filterRefs('zeros')" class="px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 transition hover:bg-gray-200">零点・RH</button>
-                            <button onclick="filterRefs('computation')" class="px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 transition hover:bg-gray-200">計算</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="ref-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                    <!-- References populated by JS -->
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <footer class="bg-gray-900 text-gray-400 py-8 border-t border-gray-800 text-center">
-        <div class="max-w-6xl mx-auto px-4">
-            <p class="serif text-lg text-gray-200 mb-2">素数計算OS</p>
-            <p class="text-xs mb-4">From Explicit Formulae to Finite Closure</p>
-            <p class="text-[10px] text-gray-600">&copy; 2025 Research Report Visualization.</p>
+            <div class="os-comp-desc" style="color:var(--color-shu);">真理ハ「此処」</div>
+            <div class="os-comp-sub">（檻ニ捉エル）</div>
+          </div>
         </div>
-    </footer>
+      </div>
+      <br>
+      <span class="bunsetsu">円ノ理ニ於テモ、</span><span class="bunsetsu">西洋ハ π ニ近ヅク「線」ヲ描キ、</span><span class="bunsetsu">和算ハ π ヲ挟ミ込ム「檻」ヲ設ク。</span>
+    </div>
+  </section>
 
-    <!-- JavaScript Logic -->
-    <script>
-        // --- Data Storage ---
+  <!-- 第二幕：操作 -->
+  <section>
+    <div class="section-label">壱. 円ヲ刻ム（術ノ実行）</div>
+    
+    <div class="modern-guide" style="border-left-color: var(--color-shu); margin-bottom:12px; font-size:0.85rem;">
+      <span class="guide-label" style="color:var(--color-shu);">【体験】</span>
+      <span class="bunsetsu">盤ヲ操ルハ</span><span class="bunsetsu"><strong>「手順」</strong>ノ追体験ナリ。</span><br>
+      <span class="bunsetsu">真理ハ</span><span class="bunsetsu">天ヨリ降ラズ。</span>
+      <span class="bunsetsu">多角形ヲ重ネル</span><span class="bunsetsu"><strong>「一手」</strong>ニノミ宿ル。</span><br>
+      <br>
+      <span class="bunsetsu">即チ和算ノ円理ハ、</span>
+      <span class="bunsetsu">「有限ノ段階ニテ</span><span class="bunsetsu">確定セシ領域コソ真理」ト定メル、</span>
+      <span class="bunsetsu"><strong>閾値（シキイチ）ヲ礎トスル</strong></span><span class="bunsetsu"><strong>OS</strong>ナリ。</span>
+    </div>
+
+    <div class="kanji-display">
+      <span id="dispKanji">十二角形</span>
+    </div>
+    
+    <!-- スライダー -->
+    <input type="range" id="inputN" min="6" max="192" step="1" value="12" class="soroban-slider">
+    
+    <!-- 自動演舞ボタン -->
+    <button class="hanko-btn" id="btnDemo">
+      自動演舞（手順の再現）
+    </button>
+
+    <!-- 見立絵図 -->
+    <div class="viz-box">
+      <svg viewBox="0 0 400 400" id="vizSvg">
+        <!-- 円 (面積 π) -->
+        <circle cx="200" cy="200" r="140" fill="rgba(22, 36, 71, 0.03)" stroke="#ccc" stroke-dasharray="4 4" />
         
-        const matrixData = {
-            explicit: {
-                title: "① 明示公式と誤差評価",
-                conventional: `
-                    <p class="mb-2 text-sm"><strong class="text-gray-900">Fiori et al. (2023), Johnston-Yang (2023)</strong></p>
-                    <p class="text-sm">最適化されたテスト関数により、Chebyshev関数 $\\psi(x)-x$ の誤差を $10^{-15}x$ 級まで圧縮することに成功 [2][3]。解析的手法としては極致に達している。</p>
-                `,
-                limit: "無限和の残存：無限個の零点寄与を不等式で抑え込むのみであり、有限回の計算で“完全な等号”までは到達できない。",
-                os: `
-                    <p class="mb-2 text-sm"><strong class="text-teal-900">有限閉包 (Finite Closure)</strong></p>
-                    <p class="text-sm">Yukawa窓関数により無限遠の寄与を有限個の有理バウンドに押し込み、実質的にカットオフする。近似値ではなく、有限区間について有限個の項と $\\Sigma_1$ 不等式で管理可能な形に落とし込む。</p>
-                `
-            },
-            intervals: {
-                title: "② 短区間・平均値",
-                conventional: `
-                    <p class="mb-2 text-sm"><strong class="text-gray-900">Cully-Hugill et al. (2022-2025)</strong></p>
-                    <p class="text-sm">$n^{155}$ 区間での素数存在保証や、短区間素数定理の明示的平均値評価を達成 [4][5]。BDH定理の一般化も進展。</p>
-                `,
-                limit: "漸近的・確率的保証：「十分大きなx」や「平均的挙動」に依存し、局所的・決定論的な数え上げには不向き。",
-                os: `
-                    <p class="mb-2 text-sm"><strong class="text-teal-900">局所的決定性 (Certificate)</strong></p>
-                    <p class="text-sm">有限窓内での決定論的計上。確率や「十分大きな」条件に依存しない、「台帳」としての素数処理。</p>
-                `
-            },
-            zeros: {
-                title: "③ ζ関数零点・RH",
-                conventional: `
-                    <p class="mb-2 text-sm"><strong class="text-gray-900">Platt-Trudgian (2021), Bellotti (2024)</strong></p>
-                    <p class="text-sm">高さ $3\\cdot 10^{12}$ までのRH検証 [10]、新たな零点非存在域の明示化 [17]、零点密度の精密化 [14]。</p>
-                `,
-                limit: "計算爆発と非存在の証明：零点個数N(T)の計算コストが増大。「そこに零点がないこと」の証明に留まる。",
-                os: `
-                    <p class="mb-2 text-sm"><strong class="text-teal-900">スペクトルとしての零点操作</strong></p>
-                    <p class="text-sm">零点を「排除すべき誤差」ではなく、有限窓を構成する「信号（スペクトル）」として直接利用・合成する。</p>
-                `
-            },
-            computation: {
-                title: "④ π(x) 計算実装",
-                conventional: `
-                    <p class="mb-2 text-sm"><strong class="text-gray-900">Walisch (2022), Büthe et al. (2018)</strong></p>
-                    <p class="text-sm">解析的手法の改良と計算最適化により、$\\pi(10^{29})$ の計算を達成 [8][9]。世界記録の更新。</p>
-                `,
-                limit: "組合せ爆発：本質的に組合せ論的アルゴリズムであり、計算量は $x$ に依存して増大 ($O(x^{2/3})$)。",
-                os: `
-                    <p class="mb-2 text-sm"><strong class="text-teal-900">O(1) Query への挑戦</strong></p>
-                    <p class="text-sm">有限閉包された明示公式による、計算量が対象 $x$ の大きさに依存しない定数時間参照の模索。</p>
-                `
-            },
-            unconditional: {
-                title: "⑤ 非RH依存評価",
-                conventional: `
-                    <p class="mb-2 text-sm"><strong class="text-gray-900">Dusart (2018), Axler (2024)</strong></p>
-                    <p class="text-sm">RHを仮定しない $\\pi(x), p_n$ の最良評価。漸近展開の係数精密化を実施 [20][21]。</p>
-                `,
-                limit: "境界の緩さ：RH非仮定ゆえに誤差項のオーダーが大きく、実用的な精密計算には耐えない。",
-                os: `
-                    <p class="mb-2 text-sm"><strong class="text-teal-900">RH非依存の構造化</strong></p>
-                    <p class="text-sm">有限閉包の枠組み自体は、RHの真偽に関わらず数理物理的に成立する構造を持つ。</p>
-                `
-            }
-        };
+        <!-- 外接多角形 -->
+        <polygon id="polyOuter" points="" style="fill:rgba(217,166,46,0.15); stroke:#d9a62e; stroke-width:2;" />
+        
+        <!-- 内接多角形 -->
+        <polygon id="polyInner" points="" style="fill:rgba(93,107,47,0.15); stroke:#5d6b2f; stroke-width:2;" />
+        
+        <!-- 中心点 -->
+        <circle cx="200" cy="200" r="3" fill="#2b2b2b" />
+        <text x="390" y="380" text-anchor="end" font-size="12" fill="#aaa" style="writing-mode: tb;">円理図解</text>
+      </svg>
+    </div>
 
-        const references = [
-            { id: "[1]", text: "Broadbent et al., Sharper Bounds for θ(x), arXiv:2002.11068 (2020)", tag: "explicit" },
-            { id: "[2]", text: "Fiori et al., Sharper bounds for ψ(x), arXiv:2204.02588 (2023)", tag: "explicit" },
-            { id: "[3]", text: "Johnston & Yang, Estimates for error in PNT, arXiv:2204.01980 (2022/23)", tag: "explicit" },
-            { id: "[4]", text: "Languasco–Moree, Explicit bounds on primes (2025 preprint)", tag: "intervals" },
-            { id: "[5]", text: "Cully-Hugill, Primes between consecutive powers (2023)", tag: "intervals" },
-            { id: "[6]", text: "Cully-Hugill & Lee, Explicit interval estimates (2022)", tag: "intervals" },
-            { id: "[7]", text: "Cully-Hugill & Dudek, Mean-value estimate for PNT (2024)", tag: "intervals" },
-            { id: "[8]", text: "Prime Counting Function – Wolfram MathWorld (2023)", tag: "computation" },
-            { id: "[9]", text: "Büthe et al., Analytic method for π(x) (2018)", tag: "computation" },
-            { id: "[10]", text: "Platt & Trudgian, RH is true up to 3·10^12 (2021)", tag: "zeros" },
-            { id: "[11]", text: "Brent et al., Estimation of sums over zeros of ζ(s) (2021)", tag: "zeros" },
-            { id: "[12]", text: "Hasanalizade, Counting zeros of Riemann zeta (2022)", tag: "zeros" },
-            { id: "[13]", text: "Bennett et al., Counting zeros of Dirichlet L-functions (2021)", tag: "zeros" },
-            { id: "[14]", text: "Chourasiya & Simonič, Ingham’s zero density estimate (2023)", tag: "zeros" },
-            { id: "[15]", text: "Simonič, Zero density estimate near critical line (2020)", tag: "zeros" },
-            { id: "[16]", text: "Patel, Explicit upper bound for |ζ(1+it)| (2022)", tag: "zeros" },
-            { id: "[17]", text: "Bellotti, New zero-free region (2024)", tag: "zeros" },
-            { id: "[18]", text: "MathOverflow, Explicit zero-free regions (2023)", tag: "zeros" },
-            { id: "[19]", text: "Dona et al., Explicit L^2 bounds for Riemann ζ (2022)", tag: "zeros" },
-            { id: "[20]", text: "Dusart, Explicit estimates over primes (2018)", tag: "unconditional" },
-            { id: "[21]", text: "Axler, New estimates for π(x) (2018)", tag: "unconditional" }
-        ];
+    <!-- 不等式バー -->
+    <div class="inequality-bar">
+      <span class="ine-green">【緑】内接（小）</span>
+      <span class="ine-center">≦ 円ノ理 ≦</span>
+      <span class="ine-gold">【金】外接（大）</span>
+    </div>
 
-        // --- State Management ---
-        let currentChartMode = 'classic'; // 'classic' or 'os'
-        let currentTermCount = 50;
-        let chartInstance = null;
+  </section>
 
-        // --- Core Interaction Handling ---
+  <!-- 第三幕：結果と証明 -->
+  <section>
+    <div class="section-label">弐. 挟み込みノ検分</div>
+    
+    <div class="fuda-grid">
+      <div class="fuda lower">
+        <span class="fuda-label">下界（内接）</span>
+        <span id="valLower" class="fuda-val">3.00000000</span>
+      </div>
+      <div class="fuda upper">
+        <span class="fuda-label">上界（外接）</span>
+        <span id="valUpper" class="fuda-val">3.21539031</span>
+      </div>
+      <div class="fuda gap fuda-full">
+        <span class="fuda-label">隙（未確定領域）<span class="gap-note">※千分ノ一未満デ皆伝</span></span>
+        <span id="valGap" class="fuda-val gap-val">0.21539031</span>
+      </div>
+    </div>
 
-        function init() {
-            // Render initial matrix tab
-            switchTab('explicit');
-            
-            // Render references
-            renderReferences(references);
+    <!-- 参考値表示 -->
+    <div class="reference-metrics">
+      参考：現代ノ参照値(π)トノ差 ≒ <span id="valDiff">0.00...</span>
+    </div>
 
-            // Init Chart
-            initChart();
-        }
+    <!-- ここが心臓部 -->
+    <div class="daifukucho-wrapper">
+      <!-- セキュリティマニフェスト（世界モデル宣言） -->
+      <div class="safety-manifesto">
+        <div class="safety-title">
+          <span>❖</span> 参. 世界模型（ワールドモデル）ノ相違
+        </div>
+        <div class="safety-text">
+          <div style="margin-bottom:10px;">
+            <span class="bunsetsu">何故、和算ガ</span><span class="bunsetsu">現代ニテ必要ナノカ？</span><br>
+            <span class="bunsetsu">西洋ノ閾値ハ、</span><span class="bunsetsu">無限ヲ信ズ故ノ</span><span class="bunsetsu">「妥協」ナリ。</span><br>
+            <span class="bunsetsu">和算ノ閾値ハ、</span><span class="bunsetsu">有限ヲ世界ト定ムル</span><span class="bunsetsu"><strong>「定義」</strong>ナリ。</span>
+          </div>
+          
+          <div class="comparison-box">
+            <div class="compare-item compare-ai">
+              <span class="compare-label">西洋モデル（無限）</span>
+              <span class="bunsetsu">「答エハ無限ノ彼方ニ」</span><br>
+              <span class="bunsetsu">未ダ真理ハ手元ニ無シ。</span><br>
+              <strong>⇒ 故ニ、外レレバ虚</strong>
+            </div>
+            <div class="compare-item compare-adic">
+              <span class="compare-label">和算モデル（有限）</span>
+              <span class="bunsetsu">「真理ハ此ノ檻ニ在リ」</span><br>
+              <span class="bunsetsu">今ココニ確定ス。</span><br>
+              <strong>⇒ 故ニ、絶対ノ保証</strong>
+            </div>
+          </div>
 
-        // Matrix Tab Switching
-        function switchTab(key) {
-            // Update Tab UI
-            document.querySelectorAll('#tab-container button').forEach(btn => {
-                if(btn.id === `tab-${key}`) {
-                    btn.classList.remove('inactive-tab', 'text-gray-500');
-                    btn.classList.add('active-tab');
-                    // Scroll active tab into view on mobile
-                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                } else {
-                    btn.classList.remove('active-tab');
-                    btn.classList.add('inactive-tab');
-                }
-            });
+          <!-- 捏造防止宣言 -->
+          <div class="anti-fake-notice">
+            <span class="bunsetsu">【布告】AIノ暴走（無限ノ不確定性）ヲ</span><span class="bunsetsu">止メルニハ、</span><span class="bunsetsu">此ノ<strong>「有限世界モデル」</strong>ガ</span><span class="bunsetsu">不可欠ナリ。</span>
+          </div>
+          
+          <!-- 証明書宣言 -->
+          <div class="proof-statement">
+            <span class="bunsetsu">【証】各行ハ</span><span class="bunsetsu">「世界ヲ有限ニ閉ジル」</span><span class="bunsetsu">手続キノ記録ナリ。</span><br>
+            <span class="bunsetsu">此ノ台帳コソガ、</span><span class="bunsetsu">デジタル社会ノ安寧ヲ守ル</span><span class="bunsetsu">最強ノ証明書トナル。</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 監査ログ -->
+      <div class="daifukucho" id="ledger"></div>
+      
+      <div style="font-size:0.7rem; color:var(--color-usuzumi); margin-top:8px; text-align:right;">
+        ※全行、世界モデルヲ確定セシ手順ナリ。
+      </div>
+    </div>
+  </section>
 
-            // Update Content with animation
-            const leftPanel = document.getElementById('conventional-content');
-            const limitPanel = document.getElementById('limit-content');
-            const rightPanel = document.getElementById('os-content');
-            const data = matrixData[key];
+  <!-- 関連リンク：和算2.0の系譜 -->
+  <section class="related-link-area">
+    <div class="related-title">【別誂】 和算二・〇ノ系譜</div>
+    <a href="https://ghostdrifttheory.github.io/prime-counter-demo/" target="_blank" class="hanko-btn link-btn">
+      素数計算機・万物ノ数ヲ数エル
+    </a>
+  </section>
 
-            // Replace [1], [2] etc with interactive links
-            const replaceRefLinks = (text) => {
-                return text.replace(/\[(\d+)\]/g, (match, id) => {
-                    return `<button onclick="scrollToRef('${id}')" class="text-teal-600 font-bold hover:underline cursor-pointer" title="参考文献[${id}]へ">[${id}]</button>`;
-                });
-            };
+  <div class="footer">
+    <span class="bunsetsu">証明ヨリモ手順ヲ。</span><span class="bunsetsu">理論ヨリモ実装ヲ。</span><br>
+    <span class="bunsetsu">カツテ和算家達ガ愛シタ</span><span class="bunsetsu"><strong>「有限ノ美学」</strong>ハ、</span><br>
+    <span class="bunsetsu">デジタル社会ノ不透明サヲ晴ラス</span><span class="bunsetsu"><strong>「信頼ノ礎（イシズエ）」</strong>ト成ラン。</span><br>
+    <span class="bunsetsu">此レゾ、日本人ガ誇ルベキ</span><span class="bunsetsu">算法ノ原風景ナリ。</span>
+  </div>
 
-            // Simple fade effect
-            const animateUpdate = (el, html) => {
-                el.style.opacity = '0';
-                setTimeout(() => {
-                    el.innerHTML = replaceRefLinks(html);
-                    el.style.opacity = '1';
-                    // Trigger MathJax typeset if needed
-                    if (window.MathJax) {
-                        MathJax.typesetPromise([el]);
-                    }
-                }, 150);
-            };
+</div>
 
-            animateUpdate(leftPanel, data.conventional);
-            animateUpdate(limitPanel, data.limit);
-            animateUpdate(rightPanel, data.os);
-        }
+<script>
+  /* * Wasan 2.0 / High-Performance Core + Animation */
+  const RADIUS = 140; 
+  const CENTER = 200;
+  
+  const elInputN = document.getElementById('inputN');
+  const elDispKanji = document.getElementById('dispKanji');
+  const elValLower = document.getElementById('valLower');
+  const elValUpper = document.getElementById('valUpper');
+  const elValGap = document.getElementById('valGap');
+  const elValDiff = document.getElementById('valDiff');
+  const elPolyInner = document.getElementById('polyInner');
+  const elPolyOuter = document.getElementById('polyOuter');
+  const elLedger = document.getElementById('ledger');
+  const btnDemo = document.getElementById('btnDemo');
 
-        function scrollToRef(id) {
-            // Ensure All tab is active so the ref is visible
-            filterRefs('all');
-            
-            setTimeout(() => {
-                const el = document.getElementById(`ref-${id}`);
-                if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    // Trigger animation
-                    el.classList.remove('highlight-ref');
-                    void el.offsetWidth; // trigger reflow
-                    el.classList.add('highlight-ref');
-                }
-            }, 50); // Small delay to allow filter rendering
-        }
+  const KANJI_NUMS = ["零","壱","弐","参","四","五","六","七","八","九"];
 
-        // Chart Logic
-        function initChart() {
-            const ctx = document.getElementById('conceptChart').getContext('2d');
-            
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: generateChartData(currentChartMode, currentTermCount),
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: { duration: 800 },
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: {
-                        legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 10 } } },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(2);
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: { 
-                            display: true, 
-                            title: { display: true, text: 'Space (t)', font: { size: 10 } },
-                            grid: { display: false },
-                            ticks: { font: { size: 10 } }
-                        },
-                        y: { 
-                            display: true, 
-                            min: -2, max: 2,
-                            grid: { color: '#E5E7EB' },
-                            ticks: { font: { size: 10 } }
-                        }
-                    }
-                }
-            });
-        }
+  function toKanji(n) {
+    if(n>=1000) return n;
+    if(n<10) return KANJI_NUMS[n];
+    if(n<100) {
+      let t=Math.floor(n/10), o=n%10, s="";
+      if(t>1) s+=KANJI_NUMS[t]; s+="十";
+      if(o>0) s+=KANJI_NUMS[o];
+      return s;
+    }
+    return n;
+  }
 
-        function setChartMode(mode) {
-            currentChartMode = mode;
-            
-            // Update Buttons
-            const btnClassic = document.getElementById('btn-mode-classic');
-            const btnOs = document.getElementById('btn-mode-os');
-            const caption = document.getElementById('chart-caption');
+  function calculate(n) {
+    const lower = (n/2) * Math.sin(2 * Math.PI / n);
+    const upper = n * Math.tan(Math.PI / n);
+    const diff = Math.abs(upper - Math.PI); 
+    return { l: lower, u: upper, g: upper - lower, d: diff };
+  }
 
-            if (mode === 'classic') {
-                btnClassic.classList.remove('bg-white', 'text-gray-500');
-                btnClassic.classList.add('bg-gray-100', 'text-gray-800');
-                btnOs.classList.remove('bg-teal-50', 'text-teal-800', 'font-bold');
-                btnOs.classList.add('text-gray-500');
-                caption.textContent = "従来の明示公式：無限遠のノイズが残留する (近似)";
-                caption.classList.remove('text-teal-700');
-                caption.classList.add('text-gray-700');
-            } else {
-                btnOs.classList.remove('bg-white', 'text-gray-500');
-                btnOs.classList.add('bg-teal-50', 'text-teal-800', 'font-bold');
-                btnClassic.classList.remove('bg-gray-100', 'text-gray-800');
-                btnClassic.classList.add('text-gray-500');
-                caption.textContent = "素数計算OS：窓の外側の寄与が実質ゼロまで抑制される (有限閉包)";
-                caption.classList.remove('text-gray-700');
-                caption.classList.add('text-teal-700');
-            }
+  function updatePoly(n) {
+    let pi = [], po = [];
+    let rOut = RADIUS / Math.cos(Math.PI/n);
+    for(let i=0; i<n; i++){
+      let th = -Math.PI/2 + (i*2*Math.PI/n);
+      let c = Math.cos(th), s = Math.sin(th);
+      pi.push((CENTER+RADIUS*c).toFixed(1)+","+(CENTER+RADIUS*s).toFixed(1));
+      po.push((CENTER+rOut*c).toFixed(1)+","+(CENTER+rOut*s).toFixed(1));
+    }
+    elPolyInner.setAttribute('points', pi.join(' '));
+    elPolyOuter.setAttribute('points', po.join(' '));
+  }
 
-            updateChart();
-        }
+  function triggerAnimation() {
+    elPolyInner.classList.remove("poly-inner-anim");
+    elPolyOuter.classList.remove("poly-outer-anim");
+    void elPolyInner.offsetWidth; 
+    elPolyInner.classList.add("poly-inner-anim");
+    elPolyOuter.classList.add("poly-outer-anim");
+  }
 
-        function updateChartTerms(val) {
-            currentTermCount = parseInt(val);
-            document.getElementById('term-count-display').innerText = val + "項";
-            updateChart();
-        }
+  function log(n, res, k) {
+    const d = document.createElement('div');
+    d.className = 'log-entry';
+    let status = "奉納";
+    let statusColor = "color:var(--color-shu); border-color:var(--color-shu);";
+    // ユーザー指定の皆伝ライン: GAP < 10^-3
+    if (res.g < 0.001) {
+       status = "皆伝";
+       statusColor = "color:#fff; background:var(--color-shu); border-color:var(--color-shu);";
+    }
+    const txId = Date.now().toString(36).toUpperCase();
+    d.innerHTML = `
+      <div class="log-header">
+        <span style="font-weight:700;">${k}ノ儀</span>
+        <span class="log-seal" style="${statusColor}">【${status}】</span>
+      </div>
+      <div class="log-body">
+        ID:${txId} | GAP:${res.g.toExponential(4)}<br>
+        L:${res.l.toFixed(8)} < π < U:${res.u.toFixed(8)}
+      </div>
+    `;
+    elLedger.appendChild(d);
+    setTimeout(() => { elLedger.scrollTop = elLedger.scrollHeight; }, 10);
+  }
 
-        function updateChart() {
-            const newData = generateChartData(currentChartMode, currentTermCount);
-            chartInstance.data = newData;
-            chartInstance.update();
-        }
+  function updateVisuals(n) {
+    let k = toKanji(n) + "角形";
+    elDispKanji.textContent = k;
+    let r = calculate(n);
+    elValLower.textContent = r.l.toFixed(8);
+    elValUpper.textContent = r.u.toFixed(8);
+    elValGap.textContent = r.g.toFixed(8);
+    elValDiff.textContent = r.d.toExponential(4); 
+    updatePoly(n);
+    return { n, r, k };
+  }
 
-        // Simulating the mathematical concept:
-        // Classic: Sum of sin(kt) -> converges slowly, noisy tail.
-        // OS: (Sum of sin(kt)) * Window(t) -> converges fast, zero tail.
-        function generateChartData(mode, terms) {
-            const labels = [];
-            const dataPoints = [];
-            
-            const steps = 100;
-            const range = 10; // -5 to 5
-            
-            for (let i = 0; i <= steps; i++) {
-                const t = (i / steps) * range - (range / 2); // -5 to 5
-                labels.push(t.toFixed(1));
+  elInputN.addEventListener('input', () => {
+    let n = parseInt(elInputN.value);
+    updateVisuals(n);
+  });
 
-                // Simulate Prime Distribution Signal (Sum of Sines)
-                let val = 0;
-                // Add "terms" number of frequencies (simulating zeros)
-                for (let k = 1; k <= terms; k++) {
-                    // Use prime-like frequencies (log p) simulation
-                    // Just pseudo-random but deterministic frequencies for visual effect
-                    const freq = k * 0.5; 
-                    const phase = k * 0.2;
-                    // Amplitude decays slightly to simulate explicit formula terms x^rho/rho
-                    const amp = 1 / k; 
-                    val += Math.sin(freq * t + phase) * amp;
-                }
-                
-                // Scale for visibility
-                val = val * 2;
+  elInputN.addEventListener('change', () => {
+    let n = parseInt(elInputN.value);
+    let data = updateVisuals(n);
+    log(data.n, data.r, data.k);
+    triggerAnimation();
+  });
 
-                if (mode === 'os') {
-                    // Apply Yukawa/Gaussian Window
-                    // Window width approx -2 to 2
-                    const window = Math.exp(-(t * t) / 2); 
-                    val = val * window;
-                    dataPoints.push(val);
-                } else {
-                    // Classic: Just the raw noisy sum
-                    dataPoints.push(val);
-                }
-            }
+  let demoInterval = null;
+  btnDemo.addEventListener('click', () => {
+    if(demoInterval) return;
+    btnDemo.textContent = "演舞中...（手順の再現）";
+    btnDemo.classList.add("playing");
+    let currentN = 6;
+    const steps = [6, 8, 12, 16, 24, 32, 48, 64, 96]; 
+    let stepIndex = 0;
+    demoInterval = setInterval(() => {
+      if (stepIndex >= steps.length) {
+        clearInterval(demoInterval);
+        demoInterval = null;
+        btnDemo.textContent = "自動演舞（手順の再現）";
+        btnDemo.classList.remove("playing");
+        return;
+      }
+      let n = steps[stepIndex];
+      elInputN.value = n;
+      let data = updateVisuals(n);
+      log(data.n, data.r, data.k);
+      triggerAnimation();
+      stepIndex++;
+    }, 1200);
+  });
 
-            const dataset = {
-                label: mode === 'classic' ? '明示公式 (近似和)' : '有限閉包 (窓関数適用)',
-                data: dataPoints,
-                borderColor: mode === 'classic' ? '#4B5563' : '#0F766E', // Gray vs Teal
-                backgroundColor: mode === 'classic' ? 'rgba(75, 85, 99, 0.1)' : 'rgba(15, 118, 110, 0.1)',
-                borderWidth: 2,
-                tension: 0.4,
-                pointRadius: 0,
-                fill: true
-            };
+  let initData = updateVisuals(12);
+  const iD = document.createElement('div');
+  iD.className = 'log-entry';
+  iD.innerHTML = `
+    <div class="log-header">
+      <span style="font-weight:700;">算額奉納</span>
+      <span class="log-seal">【開始】</span>
+    </div>
+    <div class="log-body">
+      SYSTEM: WASAN-2.0 KERNEL BOOT<br>
+      PROTOCOL: OPEN_PROCEDURE
+    </div>
+  `;
+  elLedger.appendChild(iD);
 
-            // Add a "Bounds" dataset for Classic mode to visualize error
-            const datasets = [dataset];
-            if (mode === 'classic') {
-                const errorBound = 0.5 * (10 / terms); // Error shrinks as terms increase
-                datasets.push({
-                    label: '誤差境界 (Bounds)',
-                    data: dataPoints.map(v => v + errorBound), // Mock upper bound
-                    borderColor: 'rgba(239, 68, 68, 0.3)', // Red
-                    borderWidth: 1,
-                    borderDash: [5, 5],
-                    pointRadius: 0,
-                    fill: false
-                });
-                datasets.push({
-                    label: '誤差境界 (Bounds)',
-                    data: dataPoints.map(v => v - errorBound), // Mock lower bound
-                    borderColor: 'rgba(239, 68, 68, 0.3)',
-                    borderWidth: 1,
-                    borderDash: [5, 5],
-                    pointRadius: 0,
-                    fill: false,
-                    hidden: true // Hide form legend to avoid clutter
-                });
-            }
-
-            return { labels, datasets };
-        }
-
-        // Reference Logic
-        function renderReferences(list) {
-            const container = document.getElementById('ref-grid');
-            container.innerHTML = '';
-            
-            list.forEach(ref => {
-                const div = document.createElement('div');
-                // Extract clean ID number for creating HTML id
-                const cleanId = ref.id.replace(/[\[\]]/g, '');
-                div.id = `ref-${cleanId}`;
-                div.className = "bg-white p-3 md:p-4 rounded-lg border border-gray-100 shadow-sm text-xs text-gray-600 hover:border-teal-200 transition-all duration-300";
-                
-                // Highlight the ID visually
-                const content = ref.text.replace(/^(\[\d+\])/, '<span class="font-bold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded mr-1 text-[10px] md:text-sm">$1</span>');
-                div.innerHTML = content;
-                container.appendChild(div);
-            });
-            // Typeset MathJax in references
-            if (window.MathJax) {
-                MathJax.typesetPromise([container]);
-            }
-        }
-
-        function filterRefs(tag) {
-            // Update filter buttons UI
-            const buttons = document.querySelectorAll('#references button');
-            buttons.forEach(btn => {
-                if (btn.textContent.trim() === 'All' && tag === 'all') {
-                     btn.className = "px-3 py-1 text-xs font-medium rounded-full bg-gray-800 text-white transition hover:bg-gray-700 flex-shrink-0";
-                } else if (btn.getAttribute('onclick').includes(tag) && tag !== 'all') {
-                     btn.className = "px-3 py-1 text-xs font-medium rounded-full bg-gray-800 text-white transition hover:bg-gray-700 flex-shrink-0";
-                } else {
-                     btn.className = "px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 transition hover:bg-gray-200 flex-shrink-0";
-                }
-            });
-
-            if (tag === 'all') {
-                renderReferences(references);
-            } else {
-                const filtered = references.filter(r => r.tag === tag);
-                renderReferences(filtered);
-            }
-        }
-
-        // Initialize on load
-        window.addEventListener('load', init);
-
-    </script>
+</script>
 </body>
 </html>
